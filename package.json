@@ -1,0 +1,23 @@
+{
+  "name": "haemily",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Haemily community app — hackathon demo build on the Claude Design handoff",
+  "type": "commonjs",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "reset": "node server/seed.js --reset",
+    "test": "node --test server/test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "cookie": "^0.7.1",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: haemily
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false # set this to the Neon connection string in the Render dashboard
+      - key: PGSSLMODE
+        value: require
