@@ -328,9 +328,9 @@ async function submitOtp(e){
   setButtonLoading(button,'Verifying…');
   try{
     const {member}=await api('POST','/auth/verify',{phone:state.onboarding.phone,otp:state.onboarding.otp.join('')});
-    state.authed=true;
     applyMember(member);
     if(member.onboarded){
+      state.authed=true;
       await loadBootstrap();
       state.route='home';
       render();
@@ -1298,9 +1298,9 @@ async function boot(){
   if(homeTabParam)state.homeTab=homeTabParam==='topics'?'topics':'all';
   try{
     const {member}=await api('GET','/auth/me');
-    state.authed=true;
     applyMember(member);
     if(member.onboarded){
+      state.authed=true;
       await loadBootstrap();
       state.route='home';
       if(deepLink){
