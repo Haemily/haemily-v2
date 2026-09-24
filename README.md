@@ -24,18 +24,19 @@ npm run reset
 
 ## Demo accounts
 
-Access is phone-number based, matching pre-seeded HSS-verified accounts only.
-Any 6-digit code is accepted at the verification step (no real OTP for the
-demo).
+Sign-in is open: any 8-digit phone number works, and any 6-digit code is
+accepted at the verification step (no real OTP for the demo). A phone number
+that hasn't been seen before automatically gets a fresh account and goes
+through the full onboarding flow — great for letting judges "create their own
+account" live.
+
+Three accounts are also pre-seeded for a faster demo:
 
 | Phone | Account | What it shows |
 |---|---|---|
 | `8123 4567` | New member | Full onboarding flow (profile, avatar, personalisation questions) |
 | `9123 4567` | **BrightKite** | Returning member with saved posts/resources, an authored post, event registration, comment history |
 | `9876 5432` | **GentleMoon** | A second account, useful for showing that one member's comments/likes show up for another |
-
-Any other phone number is rejected as "not recognised by HSS", matching the
-pre-seeded-accounts-only login model.
 
 ## What's implemented
 

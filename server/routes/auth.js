@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const db = require('../db');
-const { normalizePhone, findMemberByPhone, createSession, destroySession, requireAuth } = require('../auth');
+const { normalizePhone, findOrCreateMemberByPhone, createSession, destroySession, requireAuth } = require('../auth');
 
 const router = express.Router();
 
@@ -13,12 +13,11 @@ function publicMember(m) {
   };
 }
 
-// Step 1: check the phone is one HSS has verified (a pre-seeded account).
+// Step 1: for the demo, any properly-formatted phone number can sign in —
+// a member is created automatically on verify if it's not one already.
 router.post('/start', async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (phone.length !== 8) return res.status(400).json({ error: 'Enter a valid eight-digit Singapore phone number.' });
-  const member = await findMemberByPhone(phone);
-  if (!member) return res.status(404).json({ error: 'not_recognised', message: 'This phone number is not recognised by HSS.' });
   return res.json({ ok: true });
 });
 
@@ -27,8 +26,8 @@ router.post('/verify', async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const otp = String(req.body.otp || '');
   if (!/^\d{6}$/.test(otp)) return res.status(400).json({ error: 'Enter all six digits to continue.' });
-  const member = await findMemberByPhone(phone);
-  if (!member) return res.status(404).json({ error: 'not_recognised', message: 'This phone number is not recognised by HSS.' });
+  if (phone.length !== 8) return res.status(400).json({ error: 'Enter a valid eight-digit Singapore phone number.' });
+  const member = await findOrCreateMemberByPhone(phone);
   await createSession(member.id, res);
   await db.query('UPDATE members SET last_seen_at = now() WHERE id = $1', [member.id]);
   res.json({ member: publicMember(member) });

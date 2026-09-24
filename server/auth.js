@@ -15,6 +15,21 @@ async function findMemberByPhone(phone) {
   return rows[0] || null;
 }
 
+// Demo day: sign-in is open to any phone number. If it's not a known
+// member yet, create one on the spot (schema defaults give a fresh
+// SunlitKoi/SK profile, onboarded:false) so it goes through the normal
+// personalisation flow, same as the pre-seeded "new member" demo account.
+async function findOrCreateMemberByPhone(phone) {
+  const existing = await findMemberByPhone(phone);
+  if (existing) return existing;
+  const id = crypto.randomUUID();
+  await db.query(
+    `INSERT INTO members (id, phone) VALUES ($1,$2) ON CONFLICT (phone) DO NOTHING`,
+    [id, phone]
+  );
+  return findMemberByPhone(phone);
+}
+
 async function createSession(memberId, res) {
   const token = crypto.randomUUID();
   await db.query('INSERT INTO sessions (token, member_id) VALUES ($1,$2)', [token, memberId]);
@@ -49,4 +64,4 @@ async function requireAuth(req, res, next) {
   next();
 }
 
-module.exports = { normalizePhone, findMemberByPhone, createSession, destroySession, memberFromRequest, requireAuth };
+module.exports = { normalizePhone, findMemberByPhone, findOrCreateMemberByPhone, createSession, destroySession, memberFromRequest, requireAuth };
