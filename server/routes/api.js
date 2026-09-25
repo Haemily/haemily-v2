@@ -197,7 +197,7 @@ router.delete('/resources/:id/likes', async (req, res) => {
 
 router.get('/members/:username', async (req, res) => {
   const { rows: memberRows } = await db.query(
-    'SELECT id, username, avatar FROM members WHERE username = $1 ORDER BY created_at ASC LIMIT 1',
+    'SELECT id, username, avatar, phone FROM members WHERE username = $1 ORDER BY created_at ASC LIMIT 1',
     [req.params.username]
   );
   const member = memberRows[0];
@@ -226,7 +226,7 @@ router.get('/members/:username', async (req, res) => {
   ]);
   const comments = commentRows.map(r => ({ postId: r.post_id, postTitle: r.post_title, text: r.text, ageLabel: ageLabel(r.created_at) }));
 
-  res.json({ username: member.username, avatar: member.avatar, posts, comments });
+  res.json({ username: member.username, avatar: member.avatar, phone: member.phone, posts, comments });
 });
 
 // ---------- Events ----------
