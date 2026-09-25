@@ -243,7 +243,7 @@ function shell(contentHtml, active = state.route) {
     <header class="topbar"><div class="topbar-inner">
       ${detailRoute?`<button class="icon-button topbar-detail-control topbar-detail-back" aria-label="Back" onclick="${detailBack}">${icons.back}</button>`:''}
       ${createRoute?`<button class="composer-topbar-action composer-topbar-back" onclick="go('home')">${icons.back} Back</button>`:''}
-      <button class="brand" onclick="go('home')" aria-label="Haemily home"><img class="brand-logo" src="./assets/haemily-logo.png" alt=""/></button>
+      <button class="brand" onclick="go('home')" aria-label="Haemily home"><img class="brand-logo" src="./assets/haemily-logo.png" alt=""/><strong class="desktop-brand-name">Haemily</strong></button>
       ${desktopHomeSearch}
       ${createRoute?`<strong class="mobile-app-title composer-app-title">Create a post</strong>`:mobilePrimaryRoute?`<div class="mobile-app-brand" aria-label="Haemily"><img src="./assets/haemily-logo.png" alt=""/><strong>Haemily</strong></div>`:`<strong class="mobile-app-title">${accessValue(mobileTitle)}</strong>`}
       <nav class="desktop-nav" aria-label="Primary navigation">${links.map(([r,l]) => `<button class="nav-link ${active===r?'active':''}" ${active===r?'aria-current="page"':''} onclick="go('${r}')">${l}</button>`).join('')}</nav>
@@ -1391,6 +1391,7 @@ function resetL1Topbar(){
   const isL1=['home','explore','create','events','profile'].includes(state.route);
   document.body.classList.toggle('l1-page',isL1);
   document.body.classList.remove('l1-topbar-hidden');
+  document.body.classList.toggle('home-create-float-visible',state.route==='home'&&matchMedia('(min-width: 768px)').matches&&window.scrollY>160);
   l1TopbarLastY=window.scrollY;
 }
 function handleL1TopbarScroll(){
@@ -1398,6 +1399,7 @@ function handleL1TopbarScroll(){
   l1TopbarFrame=requestAnimationFrame(()=>{
     l1TopbarFrame=0;
     const currentY=Math.max(0,window.scrollY),delta=currentY-l1TopbarLastY;
+    document.body.classList.toggle('home-create-float-visible',state.route==='home'&&matchMedia('(min-width: 768px)').matches&&currentY>160);
     if(!document.body.classList.contains('l1-page')||!matchMedia('(max-width: 767px)').matches||currentY<=12||delta<-4)document.body.classList.remove('l1-topbar-hidden');
     else if(delta>4&&currentY>56)document.body.classList.add('l1-topbar-hidden');
     l1TopbarLastY=currentY;
