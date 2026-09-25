@@ -2,7 +2,8 @@
 const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
-const { requireAuth } = require('../auth');
+const { requireAuth, wrap } = require('../auth');
+const { memberLookupLimit } = require('./auth');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -195,9 +196,9 @@ router.delete('/resources/:id/likes', async (req, res) => {
 
 // ---------- Member profiles ----------
 
-router.get('/members/:username', async (req, res) => {
+router.get('/members/:username', memberLookupLimit, wrap(async (req, res) => {
   const { rows: memberRows } = await db.query(
-    'SELECT id, username, avatar, phone FROM members WHERE username = $1 ORDER BY created_at ASC LIMIT 1',
+    'SELECT id, username, avatar, phone, share_whatsapp FROM members WHERE lower(username) = lower($1) LIMIT 1',
     [req.params.username]
   );
   const member = memberRows[0];
@@ -226,8 +227,15 @@ router.get('/members/:username', async (req, res) => {
   ]);
   const comments = commentRows.map(r => ({ postId: r.post_id, postTitle: r.post_title, text: r.text, ageLabel: ageLabel(r.created_at) }));
 
-  res.json({ username: member.username, avatar: member.avatar, phone: member.phone, posts, comments });
-});
+  // Phone is only ever returned for a member who has opted in to WhatsApp
+  // contact (share_whatsapp) — see the "opt-in" fix in editProfileScreen.
+  res.json({
+    username: member.username, avatar: member.avatar,
+    phone: member.share_whatsapp ? member.phone : null,
+    shareWhatsapp: member.share_whatsapp,
+    posts, comments
+  });
+}));
 
 // ---------- Events ----------
 

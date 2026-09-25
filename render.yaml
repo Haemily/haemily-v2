@@ -10,3 +10,5 @@ services:
         sync: false # set this to the Neon connection string in the Render dashboard
       - key: PGSSLMODE
         value: require
+      - key: DEMO_MODE
+        value: "true" # returns the OTP in /auth/start's response for the hackathon demo — set to "false" once a real SMS provider is wired up

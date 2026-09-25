@@ -147,6 +147,7 @@ function applyMember(member) {
   state.onboarding.lifeStage = member.lifeStage || '';
   state.onboarding.topics = new Set(member.topics || []);
   state.onboarding.otherTopic = member.otherTopic || '';
+  state.onboarding.shareWhatsapp = !!member.shareWhatsapp;
   state.memberOnboarded = member.onboarded;
 }
 
@@ -263,7 +264,7 @@ function toggleProfile(button) {
   button.setAttribute('aria-expanded', open);
 }
 
-function resetOnboardingAnswers(){state.onboarding={firstName:'',lastName:'',phone:'',otp:['','','','','',''],username:'SunlitKoi',avatar:'avatar-style-1',relationship:'',ageRange:'',lifeStage:'',topics:new Set(),otherTopic:'',resendAvailableAt:0};}
+function resetOnboardingAnswers(){state.onboarding={firstName:'',lastName:'',phone:'',otp:['','','','','',''],username:'SunlitKoi',avatar:'avatar-style-1',relationship:'',ageRange:'',lifeStage:'',topics:new Set(),otherTopic:'',shareWhatsapp:false,resendAvailableAt:0};}
 async function signOut() {
   try { await api('POST', '/auth/logout'); } catch (e) { /* ignore */ }
   state.authed = false; state.accessStep = 0; state.route = 'home';
@@ -291,7 +292,7 @@ function accessScreen() {
   const progress=accessProgress();
   let body='';
   const accountAccessBody=`${progress}<h1>Sign up or log in</h1><p class="lede access-member-intro">Enter your name and mobile number to get started.</p><form onsubmit="submitPhone(event)"><div class="access-name-row"><div class="field"><label for="first-name">First name</label><input class="input" id="first-name" autocomplete="given-name" value="${accessValue(answer.firstName||'')}" aria-describedby="first-name-error" oninput="state.onboarding.firstName=this.value" /><p class="error-message" id="first-name-error" role="alert">Enter your first name.</p></div><div class="field"><label for="last-name">Last name</label><input class="input" id="last-name" autocomplete="family-name" value="${accessValue(answer.lastName||'')}" aria-describedby="last-name-error" oninput="state.onboarding.lastName=this.value" /><p class="error-message" id="last-name-error" role="alert">Enter your last name.</p></div></div><div class="field"><label for="phone">Mobile number</label><div class="input-row"><span class="prefix">+65</span><input class="input" id="phone" inputmode="numeric" autocomplete="tel" maxlength="8" placeholder="8123 4567" value="${accessValue(answer.phone)}" aria-describedby="phone-hint phone-error" oninput="state.onboarding.phone=this.value.replace(/\\D/g,'').slice(0,8)" /></div><p class="field-hint" id="phone-hint">Use any mobile number to sign up or log back in.</p><p class="error-message" id="phone-error" role="alert">Enter a valid eight-digit Singapore mobile number.</p></div><div class="privacy-note">${icons.lock}<span>Your name and mobile number are used only to verify your access and are not shown publicly.</span></div><div class="access-primary-stack"><button class="button button-primary" type="submit">Send verification code</button></div></form>`;
-  if(state.accessStep===1) body=`${progress}${accessTopBack(0)}<h1>Enter the verification code</h1><p class="lede">Enter the six-digit code sent to +65 •••• ${accessValue(answer.phone.slice(-4))}.</p><form onsubmit="submitOtp(event)"><div class="field"><label>Verification code</label><div class="otp-row">${answer.otp.map((digit,i)=>`<input class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="1" value="${accessValue(digit)}" aria-label="Digit ${i+1}" oninput="updateOtp(this,${i})" onkeydown="otpBack(event,this,${i})" onpaste="pasteOtp(event)" />`).join('')}</div><p class="field-hint">For this prototype, enter any complete six-digit code.</p><p class="error-message" id="otp-error" role="alert">Enter all six digits to continue.</p></div><div class="access-form-footer"><button type="button" class="button button-ghost resend-button" id="resend-code" onclick="resendCode()">Resend code</button><div class="access-actions"><button class="button button-primary" type="submit">Verify and continue</button></div></div></form>${accessReminder()}`;
+  if(state.accessStep===1) body=`${progress}${accessTopBack(0)}<h1>Enter the verification code</h1><p class="lede">Enter the six-digit code sent to +65 •••• ${accessValue(answer.phone.slice(-4))}.</p><form onsubmit="submitOtp(event)"><div class="field"><label>Verification code</label><div class="otp-row">${answer.otp.map((digit,i)=>`<input class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="1" value="${accessValue(digit)}" aria-label="Digit ${i+1}" oninput="updateOtp(this,${i})" onkeydown="otpBack(event,this,${i})" onpaste="pasteOtp(event)" />`).join('')}</div><p class="field-hint">This demo shows your code on screen instead of sending a real SMS.</p><p class="error-message" id="otp-error" role="alert">Enter all six digits to continue.</p></div><div class="access-form-footer"><button type="button" class="button button-ghost resend-button" id="resend-code" onclick="resendCode()">Resend code</button><div class="access-actions"><button class="button button-primary" type="submit">Verify and continue</button></div></div></form>${accessReminder()}`;
   if(state.accessStep===2) body=`${progress}${accessTopBack(1)}<h1>How should the community know you?</h1><p class="lede">Choose a username and avatar. Other members will see only these profile details.</p><form onsubmit="submitProfile(event)"><div class="field"><label for="username">Username</label><input class="input" id="username" maxlength="24" value="${accessValue(answer.username)}" aria-describedby="username-error" oninput="updateAvatarInitials(this.value)" /><p class="error-message" id="username-error" role="alert">Enter a username to continue.</p></div><fieldset class="access-fieldset"><legend>Choose an avatar</legend><div class="avatar-options">${avatarOptionsMarkup()}</div></fieldset><div class="access-actions"><button class="button button-primary" type="submit">Continue</button></div></form>${accessReminder()}`;
   if(state.accessStep===3) body=`${progress}${accessTopBack(2)}<h1>How are you part of the haemophilia community?</h1><p class="lede">Choose the option that best reflects you right now.</p><div class="onboarding-role-list" role="radiogroup" aria-label="Community relationship">${relationshipOptions.map(([value,label,icon])=>`<button type="button" data-focus-key="relationship-${value}" role="radio" aria-checked="${answer.relationship===value}" class="onboarding-choice-card ${answer.relationship===value?'selected':''}" onclick="chooseRelationship('${value}')">${onboardingArt(icon)}<strong>${label}</strong></button>`).join('')}</div><p class="error-message" id="relationship-error" role="alert">Choose one option to continue.</p><div class="access-actions"><button class="button button-ghost access-skip" type="button" onclick="skipRelationship()">Skip for now</button><button class="button button-primary" type="button" onclick="submitRelationship()">Continue</button></div>${accessReminder()}`;
   if(state.accessStep===4) body=`${progress}${accessTopBack(3)}<h1>Which age group is the person you care for in?</h1><p class="lede">Choose the closest range. This helps us recommend more relevant guidance.</p><div class="onboarding-age-grid" role="radiogroup" aria-label="Age group">${ageOptions.map(([value])=>`<button type="button" data-focus-key="age-${accessValue(value)}" role="radio" aria-checked="${answer.ageRange===value}" class="onboarding-choice-card age-choice ${answer.ageRange===value?'selected':''}" onclick="chooseAgeRange('${value}')"><span class="radio-mark" aria-hidden="true"></span><strong>${value}</strong></button>`).join('')}</div><p class="error-message" id="age-error" role="alert">Choose an age range to continue.</p><div class="access-actions"><button class="button button-ghost access-skip" type="button" onclick="skipAgeRange()">Skip for now</button><button class="button button-primary" type="button" onclick="submitAgeRange()">Continue</button></div>${accessReminder()}`;
@@ -321,12 +322,13 @@ async function submitPhone(e){
   const button=e.target.querySelector('button[type="submit"]');
   setButtonLoading(button,'Sending…');
   try{
-    await api('POST','/auth/start',{phone:digits});
+    const {demoCode}=await api('POST','/auth/start',{phone:digits});
     state.onboarding.phone=digits;
     state.onboarding.resendAvailableAt=Date.now()+30000;
     goAccessStep(1);
+    showDemoSms(demoCode);
   }catch(err){
-    errorEl.textContent='Something went wrong. Please try again.';
+    errorEl.textContent=(err.status===400||err.status===429)?err.message:'Something went wrong. Please try again.';
     errorEl.classList.add('show');
     input.setAttribute('aria-invalid','true');
   }finally{
@@ -357,17 +359,65 @@ async function submitOtp(e){
       goAccessStep(2);
     }
   }catch(err){
-    errorEl.textContent='Something went wrong. Please try again.';
+    errorEl.textContent=(err.status===400||err.status===429)?err.message:'Something went wrong. Please try again.';
     errorEl.classList.add('show');
   }finally{
     if(button){button.disabled=false;button.removeAttribute('aria-busy');button.textContent=button.dataset.originalLabel||'Verify and continue';}
   }
 }
 function startResendCountdown(){clearInterval(resendTimer);const update=()=>{const button=document.querySelector('#resend-code');if(!button){clearInterval(resendTimer);return;}const seconds=Math.max(0,Math.ceil((state.onboarding.resendAvailableAt-Date.now())/1000));button.disabled=seconds>0;button.textContent=seconds>0?`Resend code in ${seconds}s`:'Resend code';if(!seconds)clearInterval(resendTimer);};update();resendTimer=setInterval(update,1000);}
-function resendCode(){if(Date.now()<state.onboarding.resendAvailableAt)return;state.onboarding.resendAvailableAt=Date.now()+30000;toast('A new verification code has been sent');startResendCountdown();}
+async function resendCode(){
+  if(Date.now()<state.onboarding.resendAvailableAt)return;
+  state.onboarding.resendAvailableAt=Date.now()+30000;
+  startResendCountdown();
+  try{
+    const {demoCode}=await api('POST','/auth/start',{phone:state.onboarding.phone});
+    showDemoSms(demoCode);
+  }catch(err){
+    toast(err.status===429?err.message:'Could not send a new code. Please try again.');
+  }
+}
+// Demo-only stand-in for a real SMS: the server hands back the code it just
+// generated (DEMO_MODE), we show it like an incoming text, then autofill the
+// OTP boxes a beat later so the flow still feels like SMS autofill.
+function showDemoSms(code){
+  if(!code)return;
+  toast(`📱 Demo SMS · Your Haemily code is ${code}`);
+  setTimeout(()=>{
+    if(state.accessStep!==1)return;
+    state.onboarding.otp=code.split('');
+    render();
+  },1000);
+}
 function restoreChoiceFocus(key){requestAnimationFrame(()=>document.querySelector(`[data-focus-key="${CSS.escape(key)}"]`)?.focus());}
 function setAccessAvatar(value){const input=document.querySelector('#username');if(input)state.onboarding.username=input.value;state.onboarding.avatar=value;render();restoreChoiceFocus(`avatar-${value}`);}
-function submitProfile(e){e.preventDefault();const input=document.querySelector('#username');const username=input.value.trim();const ok=!!username;document.querySelector('#username-error').classList.toggle('show',!ok);input.setAttribute('aria-invalid',String(!ok));if(ok){state.onboarding.username=username;goAccessStep(3);}}
+async function submitProfile(e){
+  e.preventDefault();
+  const input=document.querySelector('#username');
+  const username=input.value.trim();
+  const errorEl=document.querySelector('#username-error');
+  const ok=!!username;
+  errorEl.textContent='Enter a username to continue.';
+  errorEl.classList.toggle('show',!ok);
+  input.setAttribute('aria-invalid',String(!ok));
+  if(!ok)return;
+  const button=e.target.querySelector('button[type="submit"]');
+  setButtonLoading(button,'Checking…');
+  try{
+    // Reserve the username server-side now (uniqueness/format/reserved-word
+    // checks) so a clash surfaces on this step, not after the whole flow.
+    const {member}=await api('PATCH','/auth/me',{username,avatar:state.onboarding.avatar});
+    applyMember(member);
+    state.onboarding.username=username;
+    goAccessStep(3);
+  }catch(err){
+    errorEl.textContent=(err.status===400||err.status===409)?err.message:'Could not save your username. Please try again.';
+    errorEl.classList.add('show');
+    input.setAttribute('aria-invalid','true');
+  }finally{
+    if(button){button.disabled=false;button.removeAttribute('aria-busy');button.textContent=button.dataset.originalLabel||'Continue';}
+  }
+}
 function chooseRelationship(value){state.onboarding.relationship=value;render();restoreChoiceFocus(`relationship-${value}`);}
 function submitRelationship(){const ok=!!state.onboarding.relationship;document.querySelector('#relationship-error').classList.toggle('show',!ok);if(!ok)return;if(state.onboarding.relationship==='person'){state.onboarding.ageRange='';state.onboarding.lifeStage='';goAccessStep(5);}else goAccessStep(4);}
 function skipRelationship(){state.onboarding.relationship='';state.onboarding.ageRange='';state.onboarding.lifeStage='';goAccessStep(5);}
@@ -382,7 +432,7 @@ async function completeOnboarding(goDirectlyHome=false){
   try{
     const {member}=await api('PATCH','/auth/me',{username:o.username,avatar:o.avatar,firstName:o.firstName,lastName:o.lastName,relationship:o.relationship,ageRange:o.ageRange,lifeStage:o.lifeStage,topics:[...o.topics],otherTopic:o.otherTopic,onboarded:true});
     applyMember(member);
-  }catch(err){ toast('Could not save your profile. Please try again.'); return; }
+  }catch(err){ toast((err.status===400||err.status===409)?err.message:'Could not save your profile. Please try again.'); return; }
   await loadBootstrap();
   if(goDirectlyHome){state.authed=true;state.route='home';}else state.accessStep=6;
   render();
@@ -406,8 +456,10 @@ function isOwnPost(item){return !!item.isMine;}
 function postAuthorName(item){return isOwnPost(item)?memberName():item.author;}
 function memberProfileLink(username,label=username){
   if(!username)return accessValue(label);
-  const safe=String(username).replaceAll("'","\\'");
-  return `<span class="member-profile-link" role="link" tabindex="0" onclick="event.preventDefault();event.stopPropagation();openMemberProfile('${safe}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openMemberProfile('${safe}')}" aria-label="View ${accessValue(label)}'s profile">${accessValue(label)}</span>`;
+  // Username travels through a data-attribute (never into an inline JS
+  // string), so it can't break out of the markup no matter what characters
+  // it contains.
+  return `<span class="member-profile-link" role="link" tabindex="0" data-username="${accessValue(username)}" onclick="event.preventDefault();event.stopPropagation();openMemberProfile(this.dataset.username)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openMemberProfile(this.dataset.username)}" aria-label="View ${accessValue(label)}'s profile">${accessValue(label)}</span>`;
 }
 function postAuthorMarkup(item){
   if(isOwnPost(item))return `${meTag()}${accessValue(memberName())}`;
@@ -1139,6 +1191,14 @@ async function toggleDetailSave(id,button){
 function shareItem(){ if(navigator.share){navigator.share({title:document.title,url:location.href}).catch(()=>{});}else{toast('Share link copied');} }
 // Demo-only: our phone numbers are all seeded/demo data, so we open a real
 // WhatsApp chat with the member's (fake) login number rather than faking it.
+// Reads the currently-open member profile rather than taking the phone/name
+// as literal arguments in an inline onclick — keeps a username with quotes
+// or other special characters from ever needing to be embedded in JS.
+function contactViewedMember(){
+  const profile=viewedMemberProfile;
+  if(!profile)return;
+  openWhatsApp(profile.phone,profile.username);
+}
 function openWhatsApp(phone,name){
   if(!phone){toast('WhatsApp number unavailable for this member');return;}
   const digits=String(phone).replace(/\D/g,'');
@@ -1304,7 +1364,11 @@ function memberProfileScreen(){
   const initials=accessValue(initialsFromUsername(profile.username));
   const tabs=[['posts',`Posts (${profile.posts.length})`],['comments',`Comments (${profile.comments.length})`]];
   const emptyCopy=active==='posts'?'No posts shared yet.':'No public comments yet.';
-  return shell(`<main class="page page-narrow profile-page public-member-profile"><button class="back-button desktop-detail-back public-member-back" onclick="backFromMemberProfile()">${icons.back} Back</button><section class="profile-showcase"><span class="profile-avatar-large ${profile.avatar}">${initials}</span><h1>${accessValue(profile.username)}</h1><p>@${accessValue(profile.username.toLowerCase())} · Community member</p><p class="profile-bio">Community posts and comments shared by ${accessValue(profile.username)}.</p><button class="button button-primary member-contact-cta" onclick="openWhatsApp('${profile.phone}','${accessValue(profile.username).replaceAll("'","\\'")}')" aria-label="Connect with ${accessValue(profile.username)} on WhatsApp">${icons.message}<span>Connect on WhatsApp</span>${icons.external}</button><p class="member-contact-note">Your contact details stay private until you choose to share them.</p></section><section class="document-layout profile-document-layout"><div class="document-tab-strip"><nav class="document-tabs profile-content-tabs" role="tablist" aria-label="${accessValue(profile.username)}'s public activity">${tabs.map(([id,label])=>`<button role="tab" tabindex="${active===id?'0':'-1'}" aria-selected="${active===id}" class="${active===id?'active':''}" onclick="state.memberProfileTab='${id}';render()">${label}</button>`).join('')}</nav></div><section class="document-surface profile-content-surface">${rows.length?`<div class="profile-content-list">${rows.join('')}</div>`:`<div class="empty"><div class="empty-icon">${active==='posts'?icons.message:icons.profile}</div><h3>${emptyCopy}</h3><p>Only public community activity appears here.</p></div>`}</section></section></main>`,'');
+  const avatarClass=avatarStyles.includes(profile.avatar)?profile.avatar:'avatar-style-1';
+  const contactMarkup=profile.phone
+    ?`<button class="button button-primary member-contact-cta" onclick="contactViewedMember()" aria-label="Connect with ${accessValue(profile.username)} on WhatsApp">${icons.message}<span>Connect on WhatsApp</span>${icons.external}</button>`
+    :`<p class="member-contact-note">This member hasn’t turned on WhatsApp contact.</p>`;
+  return shell(`<main class="page page-narrow profile-page public-member-profile"><button class="back-button desktop-detail-back public-member-back" onclick="backFromMemberProfile()">${icons.back} Back</button><section class="profile-showcase"><span class="profile-avatar-large ${avatarClass}">${initials}</span><h1>${accessValue(profile.username)}</h1><p>@${accessValue(profile.username.toLowerCase())} · Community member</p><p class="profile-bio">Community posts and comments shared by ${accessValue(profile.username)}.</p>${contactMarkup}</section><section class="document-layout profile-document-layout"><div class="document-tab-strip"><nav class="document-tabs profile-content-tabs" role="tablist" aria-label="${accessValue(profile.username)}'s public activity">${tabs.map(([id,label])=>`<button role="tab" tabindex="${active===id?'0':'-1'}" aria-selected="${active===id}" class="${active===id?'active':''}" onclick="state.memberProfileTab='${id}';render()">${label}</button>`).join('')}</nav></div><section class="document-surface profile-content-surface">${rows.length?`<div class="profile-content-list">${rows.join('')}</div>`:`<div class="empty"><div class="empty-icon">${active==='posts'?icons.message:icons.profile}</div><h3>${emptyCopy}</h3><p>Only public community activity appears here.</p></div>`}</section></section></main>`,'');
 }
 
 function profileScreen(){
@@ -1335,20 +1399,21 @@ function chooseProfileLifeStage(button,value){
   state.onboarding.lifeStage=state.onboarding.lifeStage===value?'':value;
   button.closest('.chips')?.querySelectorAll('.chip').forEach(option=>{const selected=option===button&&state.onboarding.lifeStage===value;option.classList.toggle('selected',selected);option.setAttribute('aria-pressed',String(selected));});
 }
+function toggleProfileWhatsapp(el){state.onboarding.shareWhatsapp=el.checked;}
 async function saveProfileChanges(){
   const input=document.querySelector('#profile-username'),username=input?.value.trim();
   if(!username){input?.focus();toast('Username is required');return;}
   state.onboarding.username=username;
   try{
-    const {member}=await api('PATCH','/auth/me',{username,avatar:state.onboarding.avatar,topics:[...state.onboarding.topics],lifeStage:state.onboarding.lifeStage});
+    const {member}=await api('PATCH','/auth/me',{username,avatar:state.onboarding.avatar,topics:[...state.onboarding.topics],lifeStage:state.onboarding.lifeStage,shareWhatsapp:state.onboarding.shareWhatsapp});
     applyMember(member);
     state.profileTab='saved';render();toast('Profile updated');
-  }catch(err){toast('Could not update your profile');}
+  }catch(err){toast((err.status===400||err.status===409)?err.message:'Could not update your profile');}
 }
 function editProfileScreen(){
   const topics=['School and childcare','Travel','Sports and exercise','Caregiver wellbeing'];
   const stages=['Primary school','Secondary school and teenage years','National Service'];
-  return shell(`<main class="page page-narrow edit-profile-page"><header class="edit-profile-header"><button class="back-button" onclick="state.profileTab='saved';render()">${icons.back} Profile</button><div><h1>Edit profile</h1><p>Update what the community sees and what Haemily recommends to you.</p></div></header><form class="edit-profile-form" onsubmit="event.preventDefault();saveProfileChanges()"><section class="edit-profile-section" aria-labelledby="public-profile-title"><div class="edit-profile-section-head"><h2 id="public-profile-title">Public profile</h2><p>Shown with your posts and comments.</p></div><div class="field"><label for="profile-username">Display name</label><input class="input" id="profile-username" value="${accessValue(memberName())}" autocomplete="nickname"/><p class="field-hint">Avoid using your full name or your child’s name.</p></div><fieldset class="edit-profile-fieldset"><legend>Avatar</legend><div class="avatar-options">${avatarOptionsMarkup()}</div></fieldset></section><section class="edit-profile-section" aria-labelledby="interests-title"><div class="edit-profile-section-head"><h2 id="interests-title">Interests</h2><p>Choose what you want to see more often.</p></div><fieldset class="edit-profile-fieldset"><legend>Topics</legend><div class="chips">${topics.map(value=>`<button type="button" class="chip ${state.onboarding.topics.has(value)?'selected':''}" aria-pressed="${state.onboarding.topics.has(value)}" onclick="toggleProfileTopicChoice(this,'${value}')">${value}</button>`).join('')}</div></fieldset><fieldset class="edit-profile-fieldset"><legend>Life stage</legend><div class="chips">${stages.map(value=>`<button type="button" class="chip ${state.onboarding.lifeStage===value?'selected':''}" aria-pressed="${state.onboarding.lifeStage===value}" onclick="chooseProfileLifeStage(this,'${value}')">${value}</button>`).join('')}</div></fieldset></section><div class="privacy-note edit-profile-privacy">${icons.lock}<span>Your phone number and registered identity are never shown publicly.</span></div><div class="edit-profile-actions"><button type="button" class="button button-ghost" onclick="state.profileTab='saved';render()">Cancel</button><button type="submit" class="button button-primary">Save changes</button></div></form></main>`,'profile');
+  return shell(`<main class="page page-narrow edit-profile-page"><header class="edit-profile-header"><button class="back-button" onclick="state.profileTab='saved';render()">${icons.back} Profile</button><div><h1>Edit profile</h1><p>Update what the community sees and what Haemily recommends to you.</p></div></header><form class="edit-profile-form" onsubmit="event.preventDefault();saveProfileChanges()"><section class="edit-profile-section" aria-labelledby="public-profile-title"><div class="edit-profile-section-head"><h2 id="public-profile-title">Public profile</h2><p>Shown with your posts and comments.</p></div><div class="field"><label for="profile-username">Display name</label><input class="input" id="profile-username" value="${accessValue(memberName())}" autocomplete="nickname"/><p class="field-hint">Avoid using your full name or your child’s name.</p></div><fieldset class="edit-profile-fieldset"><legend>Avatar</legend><div class="avatar-options">${avatarOptionsMarkup()}</div></fieldset><label class="checkbox-field"><input type="checkbox" ${state.onboarding.shareWhatsapp?'checked':''} onchange="toggleProfileWhatsapp(this)"/><span>Let signed-in members contact me on WhatsApp</span></label><p class="field-hint">Your mobile number is shown only when someone taps Contact on your profile.</p></section><section class="edit-profile-section" aria-labelledby="interests-title"><div class="edit-profile-section-head"><h2 id="interests-title">Interests</h2><p>Choose what you want to see more often.</p></div><fieldset class="edit-profile-fieldset"><legend>Topics</legend><div class="chips">${topics.map(value=>`<button type="button" class="chip ${state.onboarding.topics.has(value)?'selected':''}" aria-pressed="${state.onboarding.topics.has(value)}" onclick="toggleProfileTopicChoice(this,'${value}')">${value}</button>`).join('')}</div></fieldset><fieldset class="edit-profile-fieldset"><legend>Life stage</legend><div class="chips">${stages.map(value=>`<button type="button" class="chip ${state.onboarding.lifeStage===value?'selected':''}" aria-pressed="${state.onboarding.lifeStage===value}" onclick="chooseProfileLifeStage(this,'${value}')">${value}</button>`).join('')}</div></fieldset></section><div class="privacy-note edit-profile-privacy">${icons.lock}<span>Your phone number and registered identity are never shown publicly.</span></div><div class="edit-profile-actions"><button type="button" class="button button-ghost" onclick="state.profileTab='saved';render()">Cancel</button><button type="submit" class="button button-primary">Save changes</button></div></form></main>`,'profile');
 }
 
 function legacyProfileScreen(){
