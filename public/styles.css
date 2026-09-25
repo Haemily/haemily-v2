@@ -70,6 +70,7 @@ p{margin-bottom:0}
 .input,.textarea,.select{width:100%;min-height:44px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);padding:10px 12px}
 .textarea{min-height:120px;resize:vertical}.input:focus,.textarea:focus,.select:focus{border-color:var(--blue-strong);outline:none;box-shadow:var(--focus)}
 .field{display:grid;gap:7px;margin-bottom:17px}.field label,.access-fieldset legend{font-weight:700}.field-hint{color:var(--muted);font-size:.82rem}
+.checkbox-field{display:flex;align-items:center;gap:9px;margin:12px 0 4px;font-weight:600}.checkbox-field input{width:18px;height:18px}
 .error-message{display:none;color:var(--danger);font-size:.84rem}.field.has-error .error-message,.error-message.show{display:block}.field.has-error .input{border-color:var(--danger)}
 .input-row{display:grid;grid-template-columns:auto 1fr}.prefix{display:grid;place-items:center;padding:0 13px;border:1px solid var(--border-strong);border-right:0;border-radius:var(--radius-sm) 0 0 var(--radius-sm);background:var(--soft-blue);font-weight:700}.input-row .input{border-radius:0 var(--radius-sm) var(--radius-sm) 0}
 .chips,.quick-filters,.resource-source-chips,.applied-filters,.onboarding-chips{display:flex;flex-wrap:wrap;gap:8px}

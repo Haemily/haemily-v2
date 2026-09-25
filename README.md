@@ -24,11 +24,14 @@ npm run reset
 
 ## Demo accounts
 
-Sign-in is open: any 8-digit phone number works, and any 6-digit code is
-accepted at the verification step (no real OTP for the demo). A phone number
-that hasn't been seen before automatically gets a fresh account and goes
-through the full onboarding flow — great for letting judges "create their own
-account" live.
+Sign-in works with any 8-digit phone number. Instead of a real SMS, the
+server generates a real 6-digit code and hands it straight back to the
+client, which shows it as a "📱 Demo SMS" toast and autofills it a moment
+later (set `DEMO_MODE=false` to stop exposing the code, once a real SMS
+provider is wired up). The code expires after 5 minutes and locks out after 5
+wrong guesses. A phone number that hasn't been seen before automatically gets
+a fresh account and goes through the full onboarding flow — great for letting
+judges "create their own account" live.
 
 Three accounts are also pre-seeded for a faster demo:
 
@@ -37,6 +40,16 @@ Three accounts are also pre-seeded for a faster demo:
 | `8123 4567` | New member | Full onboarding flow (profile, avatar, personalisation questions) |
 | `9123 4567` | **BrightKite** | Returning member with saved posts/resources, an authored post, event registration, comment history |
 | `9876 5432` | **GentleMoon** | A second account, useful for showing that one member's comments/likes show up for another |
+
+**Phone privacy:** a member's phone number is only ever returned by the API
+if they've turned on "Let signed-in members contact me on WhatsApp" in Edit
+profile — off by default for new accounts. BrightKite and GentleMoon are
+seeded with it on, so the WhatsApp button on their profiles still works
+out of the box.
+
+**Usernames** must be unique (case-insensitive), 3–24 characters, and can't
+reuse a reserved word (`hss`, `admin`, `moderator`, …) or an existing post/
+comment author's name.
 
 ## What's implemented
 
@@ -72,7 +85,9 @@ server/
   db.js             Postgres/PGlite adapter
   schema.sql        table definitions
   seed.js/seedData.js  demo accounts + the design's original content, seeded into the DB
-  auth.js           session-cookie auth
+  auth.js           session-cookie auth, demo OTP, username validation
+  rateLimit.js      in-memory per-IP/per-phone rate limiting
   routes/auth.js     phone/OTP-style login, profile
   routes/api.js       posts, comments, reactions, saves, events, bootstrap
+  test/             node --test smoke tests (npm test)
 ```

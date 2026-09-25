@@ -13,8 +13,8 @@ const { content, postImages, events, resources, seededThreadFor, resourceEngagem
 
 const MEMBERS = [
   { id: 'member-new', phone: '81234567', username: 'SunlitKoi', avatar: 'avatar-style-1', onboarded: false },
-  { id: 'member-brightkite', phone: '91234567', username: 'BrightKite', avatar: 'avatar-style-2', relationship: 'caregiver', age_range: '7–12 years', life_stage: 'Primary school', topics: ['School and childcare', 'Travel'], onboarded: true },
-  { id: 'member-gentlemoon', phone: '98765432', username: 'GentleMoon', avatar: 'avatar-style-3', relationship: 'caregiver', age_range: '3–6 years', life_stage: 'Preschool and kindergarten', topics: ['School and childcare'], onboarded: true }
+  { id: 'member-brightkite', phone: '91234567', username: 'BrightKite', avatar: 'avatar-style-2', relationship: 'caregiver', age_range: '7–12 years', life_stage: 'Primary school', topics: ['School and childcare', 'Travel'], onboarded: true, share_whatsapp: true },
+  { id: 'member-gentlemoon', phone: '98765432', username: 'GentleMoon', avatar: 'avatar-style-3', relationship: 'caregiver', age_range: '3–6 years', life_stage: 'Preschool and kindergarten', topics: ['School and childcare'], onboarded: true, share_whatsapp: true }
 ];
 const MEMBER_BY_NAME = { BrightKite: 'member-brightkite', GentleMoon: 'member-gentlemoon' };
 
@@ -25,10 +25,10 @@ async function wipe(query) {
 async function seedMembers(query) {
   for (const m of MEMBERS) {
     await query(
-      `INSERT INTO members (id, phone, username, avatar, relationship, age_range, life_stage, topics, onboarded)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO members (id, phone, username, avatar, relationship, age_range, life_stage, topics, onboarded, share_whatsapp)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (id) DO NOTHING`,
-      [m.id, m.phone, m.username, m.avatar, m.relationship || '', m.age_range || '', m.life_stage || '', JSON.stringify(m.topics || []), m.onboarded]
+      [m.id, m.phone, m.username, m.avatar, m.relationship || '', m.age_range || '', m.life_stage || '', JSON.stringify(m.topics || []), m.onboarded, !!m.share_whatsapp]
     );
   }
 }

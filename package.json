@@ -9,7 +9,7 @@
     "start": "node server/index.js",
     "dev": "node server/index.js",
     "reset": "node server/seed.js --reset",
-    "test": "node --test server/test"
+    "test": "node --test server/test/**/*.test.js"
   },
   "engines": {
     "node": ">=18"

@@ -40,7 +40,9 @@ async function init() {
     backend = 'postgres';
   } else {
     const { PGlite } = require('@electric-sql/pglite');
-    const dataDir = path.join(__dirname, '..', '.data', 'pgdata');
+    // Tests point this at a throwaway temp dir so they never touch the dev
+    // database in .data/ (and can run several isolated instances in parallel).
+    const dataDir = process.env.PGLITE_DIR || path.join(__dirname, '..', '.data', 'pgdata');
     fs.mkdirSync(path.dirname(dataDir), { recursive: true });
     const pgliteDb = new PGlite(dataDir);
     await pgliteDb.waitReady;

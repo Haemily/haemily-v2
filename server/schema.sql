@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- One-time codes for the demo "SMS" login step. A row is upserted on every
+-- /auth/start and consumed (deleted) on a correct /auth/verify.
+CREATE TABLE IF NOT EXISTS otp_codes (
+  phone text PRIMARY KEY,
+  code_hash text NOT NULL,
+  attempts integer NOT NULL DEFAULT 0,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Posts, events and resources are stored with a flexible jsonb "data" blob
 -- carrying the same shape the design's hardcoded arrays used, plus a few
 -- normalised columns we need to query/sort/filter on.
@@ -120,3 +130,22 @@ CREATE TABLE IF NOT EXISTS event_registrations (
 ALTER TABLE members ADD COLUMN IF NOT EXISTS first_name text NOT NULL DEFAULT '';
 ALTER TABLE members ADD COLUMN IF NOT EXISTS last_name text NOT NULL DEFAULT '';
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS base_likes integer NOT NULL DEFAULT 0;
+
+-- Phone numbers are sensitive (PDPA) and are only ever returned by the API
+-- for a member who has explicitly opted in to being contacted on WhatsApp.
+ALTER TABLE members ADD COLUMN IF NOT EXISTS share_whatsapp boolean NOT NULL DEFAULT false;
+
+-- Usernames must be unique (case-insensitively) so /members/:username always
+-- resolves to exactly one account and can't collide with a seeded identity.
+-- Any existing duplicates are disambiguated first so the index can be built.
+UPDATE members m SET username = m.username || substr(md5(m.id), 1, 4)
+  WHERE EXISTS (
+    SELECT 1 FROM members o
+    WHERE lower(o.username) = lower(m.username) AND (o.created_at, o.id) < (m.created_at, m.id)
+  );
+CREATE UNIQUE INDEX IF NOT EXISTS members_username_lower_idx ON members (lower(username));
+
+-- The legacy 'SK' default predates the avatar-style-N system the client
+-- actually renders; normalise any stragglers so every member has a real one.
+ALTER TABLE members ALTER COLUMN avatar SET DEFAULT 'avatar-style-1';
+UPDATE members SET avatar = 'avatar-style-1' WHERE avatar !~ '^avatar-style-[1-5]$';
