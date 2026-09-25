@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title description">
+  <title id="title">Travel preparation</title>
+  <desc id="description">A travel bag, checklist, and passport arranged on a table.</desc>
+  <rect width="960" height="540" fill="#edf4f7"/>
+  <rect x="80" y="90" width="800" height="360" rx="30" fill="#fafbfa"/>
+  <rect x="135" y="175" width="280" height="190" rx="24" fill="#79a6c3"/>
+  <path d="M205 175v-35c0-28 23-51 51-51h38c28 0 51 23 51 51v35" fill="none" stroke="#123b4a" stroke-width="18"/>
+  <rect x="500" y="120" width="250" height="310" rx="18" fill="#fff" stroke="#d7e0e5" stroke-width="8"/>
+  <path d="M545 200h155M545 255h155M545 310h120" fill="none" stroke="#123b4a" stroke-linecap="round" stroke-width="14"/>
+  <path d="m525 195 10 10 20-24m-30 69 10 10 20-24m-30 69 10 10 20-24" fill="none" stroke="#e2b15a" stroke-linecap="round" stroke-linejoin="round" stroke-width="10"/>
+  <rect x="760" y="185" width="90" height="125" rx="12" fill="#fff6e5" stroke="#e2b15a" stroke-width="7"/>
+  <circle cx="805" cy="235" r="22" fill="#e2b15a"/>
+</svg>
