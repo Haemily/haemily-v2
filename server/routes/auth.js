@@ -8,6 +8,7 @@ const router = express.Router();
 function publicMember(m) {
   return {
     id: m.id, phone: m.phone, username: m.username, avatar: m.avatar,
+    firstName: m.first_name, lastName: m.last_name,
     relationship: m.relationship, ageRange: m.age_range, lifeStage: m.life_stage,
     topics: m.topics, otherTopic: m.other_topic, onboarded: m.onboarded, isModerator: m.is_moderator
   };
@@ -41,8 +42,8 @@ router.post('/logout', async (req, res) => {
 router.get('/me', requireAuth, (req, res) => res.json({ member: publicMember(req.member) }));
 
 router.patch('/me', requireAuth, async (req, res) => {
-  const allowed = ['username', 'avatar', 'relationship', 'ageRange', 'lifeStage', 'topics', 'otherTopic', 'onboarded'];
-  const columns = { username: 'username', avatar: 'avatar', relationship: 'relationship', ageRange: 'age_range', lifeStage: 'life_stage', topics: 'topics', otherTopic: 'other_topic', onboarded: 'onboarded' };
+  const allowed = ['username', 'avatar', 'firstName', 'lastName', 'relationship', 'ageRange', 'lifeStage', 'topics', 'otherTopic', 'onboarded'];
+  const columns = { username: 'username', avatar: 'avatar', firstName: 'first_name', lastName: 'last_name', relationship: 'relationship', ageRange: 'age_range', lifeStage: 'life_stage', topics: 'topics', otherTopic: 'other_topic', onboarded: 'onboarded' };
   const sets = [];
   const values = [];
   let i = 1;

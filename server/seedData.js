@@ -91,6 +91,19 @@ const resourceTopics = {
 };
 resources.forEach(resource => { resource.detailTopics = resourceTopics[resource.id] || resource.keyPoints.map((point, index) => [`Topic ${index + 1}`, point]); });
 
+// Starting like counts for the new resource-likes feature, taken from the
+// design's own placeholder numbers so the demo starts out looking lived-in.
+const resourceEngagement = {
+  'travel-session-recording': 42,
+  'school-conversation-guide': 56,
+  'travel-session-slides': 31,
+  'understanding-haemophilia': 38,
+  'infusion-routines-video': 47,
+  'sports-questions': 34,
+  'living-with-haemophilia-study': 63,
+  'caregiver-wellbeing-video': 45
+};
+
 // Personas referenced in the design's hardcoded comment threads. They are
 // not logins — just display identities for seeded comments, exactly as the
 // static handoff showed them.
@@ -127,4 +140,4 @@ function seededThreadFor(targetType, targetId) {
   ];
 }
 
-module.exports = { content, postImages, events, resources, personas, seededThreadFor };
+module.exports = { content, postImages, events, resources, personas, seededThreadFor, resourceEngagement };

@@ -9,17 +9,17 @@
 'use strict';
 const crypto = require('crypto');
 const db = require('./db');
-const { content, postImages, events, resources, seededThreadFor } = require('./seedData');
+const { content, postImages, events, resources, seededThreadFor, resourceEngagement } = require('./seedData');
 
 const MEMBERS = [
-  { id: 'member-new', phone: '81234567', username: 'SunlitKoi', avatar: 'SK', onboarded: false },
-  { id: 'member-brightkite', phone: '91234567', username: 'BrightKite', avatar: 'BK', relationship: 'caregiver', age_range: '7–12 years', life_stage: 'Primary school', topics: ['School and childcare', 'Travel'], onboarded: true },
-  { id: 'member-gentlemoon', phone: '98765432', username: 'GentleMoon', avatar: 'GM', relationship: 'caregiver', age_range: '3–6 years', life_stage: 'Preschool and kindergarten', topics: ['School and childcare'], onboarded: true }
+  { id: 'member-new', phone: '81234567', username: 'SunlitKoi', avatar: 'avatar-style-1', onboarded: false },
+  { id: 'member-brightkite', phone: '91234567', username: 'BrightKite', avatar: 'avatar-style-2', relationship: 'caregiver', age_range: '7–12 years', life_stage: 'Primary school', topics: ['School and childcare', 'Travel'], onboarded: true },
+  { id: 'member-gentlemoon', phone: '98765432', username: 'GentleMoon', avatar: 'avatar-style-3', relationship: 'caregiver', age_range: '3–6 years', life_stage: 'Preschool and kindergarten', topics: ['School and childcare'], onboarded: true }
 ];
 const MEMBER_BY_NAME = { BrightKite: 'member-brightkite', GentleMoon: 'member-gentlemoon' };
 
 async function wipe(query) {
-  await query(`TRUNCATE TABLE comment_likes, comments, reactions, saves, event_registrations, sessions, posts, events, resources, members RESTART IDENTITY CASCADE`);
+  await query(`TRUNCATE TABLE comment_likes, comments, reactions, resource_likes, saves, event_registrations, sessions, posts, events, resources, members RESTART IDENTITY CASCADE`);
 }
 
 async function seedMembers(query) {
@@ -57,7 +57,10 @@ async function seedEventsAndResources(query) {
     await query(`INSERT INTO events (id, data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING`, [event.id, JSON.stringify(event)]);
   }
   for (const resource of resources) {
-    await query(`INSERT INTO resources (id, data) VALUES ($1,$2) ON CONFLICT (id) DO NOTHING`, [resource.id, JSON.stringify(resource)]);
+    await query(
+      `INSERT INTO resources (id, data, base_likes) VALUES ($1,$2,$3) ON CONFLICT (id) DO NOTHING`,
+      [resource.id, JSON.stringify(resource), resourceEngagement[resource.id] || 0]
+    );
   }
 }
 

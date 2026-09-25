@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS members (
   phone text UNIQUE NOT NULL,
   username text NOT NULL DEFAULT 'SunlitKoi',
   avatar text NOT NULL DEFAULT 'SK',
+  first_name text NOT NULL DEFAULT '',
+  last_name text NOT NULL DEFAULT '',
   relationship text NOT NULL DEFAULT '',
   age_range text NOT NULL DEFAULT '',
   life_stage text NOT NULL DEFAULT '',
@@ -91,7 +93,15 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE TABLE IF NOT EXISTS resources (
   id text PRIMARY KEY,
-  data jsonb NOT NULL
+  data jsonb NOT NULL,
+  base_likes integer NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS resource_likes (
+  member_id text NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  resource_id text NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (member_id, resource_id)
 );
 
 CREATE TABLE IF NOT EXISTS event_registrations (
@@ -102,3 +112,11 @@ CREATE TABLE IF NOT EXISTS event_registrations (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (member_id, event_id)
 );
+
+-- Additive migrations for columns added after the tables above were first
+-- deployed (e.g. to Neon). CREATE TABLE IF NOT EXISTS is a no-op on a table
+-- that already exists, so new columns on existing tables must be added here
+-- explicitly — this keeps a redeploy safe without a manual DB reset.
+ALTER TABLE members ADD COLUMN IF NOT EXISTS first_name text NOT NULL DEFAULT '';
+ALTER TABLE members ADD COLUMN IF NOT EXISTS last_name text NOT NULL DEFAULT '';
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS base_likes integer NOT NULL DEFAULT 0;

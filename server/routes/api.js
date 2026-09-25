@@ -31,23 +31,34 @@ function ageLabel(createdAt) {
 
 // ---------- Posts ----------
 
-async function postsForMember(memberId) {
-  const { rows } = await db.query(`
-    SELECT p.*,
-      (p.base_reactions + COALESCE(r.cnt, 0))::int AS reactions,
-      (p.base_comments + COALESCE(c.cnt, 0))::int AS comments
-    FROM posts p
-    LEFT JOIN (SELECT post_id, count(*) cnt FROM reactions WHERE kind = 'helpful' GROUP BY post_id) r ON r.post_id = p.id
-    LEFT JOIN (SELECT target_id, count(*) cnt FROM comments WHERE target_type = 'post' GROUP BY target_id) c ON c.target_id = p.id
-    ORDER BY p.created_at DESC
-  `);
-  return rows.map(row => ({
+// Shapes a `posts` row (+ joined reactions/comments/author counts) into the
+// object the client expects. `authorUsername`/`isMine` let the client show a
+// "Me" badge or a link to the member's profile without any DOM text-matching.
+function mapPostRow(row) {
+  return {
     id: row.id, author: row.author, initials: row.initials, org: row.org,
     verified: row.verified, format: row.format, title: row.title, excerpt: row.excerpt,
     body: row.body || '', topics: row.topics, stages: row.stages, image: row.image,
     helpful: row.helpful, reactions: row.reactions, comments: row.comments,
-    date: row.date_label || ageLabel(row.created_at)
-  }));
+    date: row.date_label || ageLabel(row.created_at),
+    authorUsername: row.author_username || null, isMine: !!row.is_mine
+  };
+}
+
+async function postsForMember(memberId) {
+  const { rows } = await db.query(`
+    SELECT p.*,
+      m.username AS author_username,
+      (p.member_id = $1) AS is_mine,
+      (p.base_reactions + COALESCE(r.cnt, 0))::int AS reactions,
+      (p.base_comments + COALESCE(c.cnt, 0))::int AS comments
+    FROM posts p
+    LEFT JOIN members m ON m.id = p.member_id
+    LEFT JOIN (SELECT post_id, count(*) cnt FROM reactions WHERE kind = 'helpful' GROUP BY post_id) r ON r.post_id = p.id
+    LEFT JOIN (SELECT target_id, count(*) cnt FROM comments WHERE target_type = 'post' GROUP BY target_id) c ON c.target_id = p.id
+    ORDER BY p.created_at DESC
+  `, [memberId]);
+  return rows.map(mapPostRow);
 }
 
 router.post('/posts', async (req, res) => {
@@ -75,18 +86,22 @@ router.delete('/posts/:id/reactions/:kind', async (req, res) => {
 
 // ---------- Comments ----------
 
-function shapeComments(rows, memberId) {
-  const likeCounts = {};
+function shapeComments(rows) {
   const byId = new Map();
-  rows.forEach(r => { byId.set(r.id, { ...r, replies: [] }); });
+  rows.forEach(r => {
+    byId.set(r.id, {
+      id: r.id, parent_id: r.parent_id, author: r.author, avatar: r.avatar,
+      role_label: r.role_label, text: r.text, context: r.context,
+      authorUsername: r.author_username || null, isMine: !!r.is_mine,
+      likes: r.base_likes + r._like_count, liked: r._liked,
+      ageLabel: ageLabel(r.created_at), createdAt: r.created_at, replies: []
+    });
+  });
   const top = [];
   for (const row of byId.values()) {
-    row.likes = row.base_likes + row._like_count;
-    row.liked = row._liked;
-    row.ageLabel = ageLabel(row.created_at);
-    delete row._like_count; delete row._liked; delete row.base_likes;
     if (row.parent_id && byId.has(row.parent_id)) byId.get(row.parent_id).replies.push(row);
     else top.push(row);
+    delete row.parent_id;
   }
   return top;
 }
@@ -96,9 +111,12 @@ router.get('/comments', async (req, res) => {
   if (!targetType || !targetId) return res.status(400).json({ error: 'target=type:id is required' });
   const { rows } = await db.query(`
     SELECT c.*,
+      m.username AS author_username,
+      (c.member_id = $3) AS is_mine,
       COALESCE(l.cnt, 0)::int AS _like_count,
       EXISTS(SELECT 1 FROM comment_likes WHERE comment_id = c.id AND member_id = $3) AS _liked
     FROM comments c
+    LEFT JOIN members m ON m.id = c.member_id
     LEFT JOIN (SELECT comment_id, count(*) cnt FROM comment_likes GROUP BY comment_id) l ON l.comment_id = c.id
     WHERE c.target_type = $1 AND c.target_id = $2
     ORDER BY c.created_at ASC
@@ -110,7 +128,7 @@ router.get('/comments', async (req, res) => {
     postAuthor = p[0]?.author || null;
   }
   rows.forEach(r => { if (!r.role_label && postAuthor && r.author === postAuthor) r.role_label = 'Original author'; });
-  res.json({ comments: shapeComments(rows, req.member.id) });
+  res.json({ comments: shapeComments(rows) });
 });
 
 router.post('/comments', async (req, res) => {
@@ -153,6 +171,64 @@ router.delete('/saves/:type/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Resources ----------
+
+async function resourcesForMember(memberId) {
+  const { rows } = await db.query(`
+    SELECT r.id, r.data,
+      (r.base_likes + COALESCE(l.cnt, 0))::int AS likes,
+      EXISTS(SELECT 1 FROM resource_likes WHERE resource_id = r.id AND member_id = $1) AS liked
+    FROM resources r
+    LEFT JOIN (SELECT resource_id, count(*) cnt FROM resource_likes GROUP BY resource_id) l ON l.resource_id = r.id
+  `, [memberId]);
+  return rows.map(row => ({ ...row.data, likes: row.likes, liked: row.liked }));
+}
+
+router.post('/resources/:id/likes', async (req, res) => {
+  await db.query('INSERT INTO resource_likes (member_id, resource_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.member.id, req.params.id]);
+  res.json({ ok: true });
+});
+router.delete('/resources/:id/likes', async (req, res) => {
+  await db.query('DELETE FROM resource_likes WHERE member_id=$1 AND resource_id=$2', [req.member.id, req.params.id]);
+  res.json({ ok: true });
+});
+
+// ---------- Member profiles ----------
+
+router.get('/members/:username', async (req, res) => {
+  const { rows: memberRows } = await db.query(
+    'SELECT id, username, avatar FROM members WHERE username = $1 ORDER BY created_at ASC LIMIT 1',
+    [req.params.username]
+  );
+  const member = memberRows[0];
+  if (!member) return res.status(404).json({ error: 'Member not found' });
+
+  const [posts, commentRows] = await Promise.all([
+    db.query(`
+      SELECT p.*,
+        m.username AS author_username,
+        (p.member_id = $2) AS is_mine,
+        (p.base_reactions + COALESCE(r.cnt, 0))::int AS reactions,
+        (p.base_comments + COALESCE(c.cnt, 0))::int AS comments
+      FROM posts p
+      LEFT JOIN members m ON m.id = p.member_id
+      LEFT JOIN (SELECT post_id, count(*) cnt FROM reactions WHERE kind = 'helpful' GROUP BY post_id) r ON r.post_id = p.id
+      LEFT JOIN (SELECT target_id, count(*) cnt FROM comments WHERE target_type = 'post' GROUP BY target_id) c ON c.target_id = p.id
+      WHERE p.member_id = $1
+      ORDER BY p.created_at DESC
+    `, [member.id, req.member.id]).then(r => r.rows.map(mapPostRow)),
+    db.query(`
+      SELECT c.id, c.text, c.created_at, p.id AS post_id, p.title AS post_title
+      FROM comments c JOIN posts p ON p.id = c.target_id
+      WHERE c.target_type = 'post' AND c.member_id = $1
+      ORDER BY c.created_at DESC LIMIT 20
+    `, [member.id]).then(r => r.rows)
+  ]);
+  const comments = commentRows.map(r => ({ postId: r.post_id, postTitle: r.post_title, text: r.text, ageLabel: ageLabel(r.created_at) }));
+
+  res.json({ username: member.username, avatar: member.avatar, posts, comments });
+});
+
 // ---------- Events ----------
 
 router.put('/events/:id/registration', async (req, res) => {
@@ -179,7 +255,7 @@ router.get('/bootstrap', async (req, res) => {
   const [posts, events, resources, saves, registrations, liked, commented, authored, myCommentRows] = await Promise.all([
     postsForMember(memberId),
     db.query('SELECT data FROM events ORDER BY (data->>\'start\') ASC').then(r => r.rows.map(row => row.data)),
-    db.query('SELECT data FROM resources').then(r => r.rows.map(row => row.data)),
+    resourcesForMember(memberId),
     db.query('SELECT item_type, item_id FROM saves WHERE member_id = $1', [memberId]).then(r => r.rows),
     db.query('SELECT event_id, status, attended FROM event_registrations WHERE member_id = $1', [memberId]).then(r => r.rows),
     db.query("SELECT post_id FROM reactions WHERE member_id = $1 AND kind = 'helpful'", [memberId]).then(r => r.rows.map(x => x.post_id)),
@@ -209,6 +285,7 @@ router.get('/bootstrap', async (req, res) => {
     posts, events, resources,
     saved: saves.filter(s => s.item_type === 'post').map(s => s.item_id),
     savedResources: saves.filter(s => s.item_type === 'resource').map(s => s.item_id),
+    likedResources: resources.filter(r => r.liked).map(r => r.id),
     registered, cancelled, attended, liked,
     commentedPosts: commented, authoredPosts: authored, myComments
   });
